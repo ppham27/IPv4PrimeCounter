@@ -9,6 +9,14 @@ import com.phillypham.mapreduce.job.PrimeFilter;
 
 public class Main {
     public static void main(String[] argv) throws Exception {
+
+        // make sure there are enough inputs
+        if (argv.length < 2) {
+            System.err.println("Usage: Main [strict] <IPv4 CIDR(s) list...> <output path>");
+            ToolRunner.printGenericCommandUsage(System.err);
+            System.exit(-1);
+        }
+        
         Date startTime = new Date();
         System.out.println("Jobs started: " + startTime);
         

@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.io.File;
 import java.io.PrintWriter;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.LongWritable;
@@ -56,15 +54,13 @@ public class PrimeFilter
     public int run(String[] args) throws Exception {
         // make sure there are enough inputs
         if (args.length != 2 && args.length != 3) {
-            System.err.println("Usage: "+getClass().getName()+" [strict] <input path> <output path>");
+            System.err.println("Usage: "+getClass().getName()+" [strict] <sequence file input path> <output path>");
             ToolRunner.printGenericCommandUsage(System.err);
             return -1;
         }
 
         // get file system, create new job, and name it
-        Configuration configuration = getConf();
-        FileSystem fs = FileSystem.get(configuration);
-        Job job = new Job(configuration);
+        Job job = new Job(getConf());
         job.setJobName("prime-filter");
 
         // configure io
@@ -110,5 +106,9 @@ public class PrimeFilter
         }
         
         return numPrimes;
-    }    
+    }
+
+    public static void main(String[] args) throws Exception {
+        System.exit(ToolRunner.run(null, new PrimeFilter(), args));
+    }
 }

@@ -27,17 +27,37 @@ import org.apache.hadoop.util.ToolRunner;
 public class IPv4AddressGenerator
     extends Configured implements Tool {
 
-    private final int IPV4_BITS = 32;
-    private final int BITS_IN_BYTE = 8;
-    private final long ADDRESSES_PER_MAP = 0x80000;
-    private final Pattern IPV4_PATTERN = Pattern.compile("^(?:(?:2[0-4][0-9]|25[0-5]|[01][0-9]{2}|[0-9]{1,2})\\.){3}(?:2[0-4][0-9]|25[0-5]|[01][0-9]{2}|[0-9]{1,2})/(?:[0-9]|[12][0-9]|3[0-2])$");
-    private final Path TMP_DIR = new Path(IPv4AddressGenerator.class.getSimpleName() + "_TMP");
+    private static final int IPV4_BITS = 32;
+    private static final int BITS_IN_BYTE = 8;
+    private static final long ADDRESSES_PER_MAP = 0x80000;
+    private static final Pattern IPV4_PATTERN = Pattern.compile("^(?:(?:2[0-4][0-9]|25[0-5]|[01][0-9]{2}|[0-9]{1,2})\\.){3}(?:2[0-4][0-9]|25[0-5]|[01][0-9]{2}|[0-9]{1,2})/(?:[0-9]|[12][0-9]|3[0-2])$");
+    private static final Path TMP_DIR = new Path(IPv4AddressGenerator.class.getSimpleName() + "_TMP");
 
     private static String longToIPv4(long num) {
         return ((num & 0xff000000) >> 24) + "." + 
             ((num & 0x00ff0000) >> 16) + "." + 
             ((num & 0x0000ff00) >> 8) + "." + 
             (num & 0x000000ff);
+    }
+
+    public static Long[] parseCIDR(String cidr) {
+        Long[] parsedCIDR = new Long[2];
+        String[] ipAndPrefix = cidr.split("/");
+        String[] ipSplit = ipAndPrefix[0].split("\\.");
+        parsedCIDR[0] = 0L;
+        for (int j=0; j < ipSplit.length; j++) {
+            parsedCIDR[0] += (long) (Long.parseLong(ipSplit[ipSplit.length-1-j])*
+                                     Math.pow(2,j*BITS_IN_BYTE));
+        }
+        parsedCIDR[1] = (long) Math.pow(2, IPV4_BITS-Long.parseLong(ipAndPrefix[1]));
+        return parsedCIDR;
+    }
+
+    public static boolean isValidCIDR(String cidr) {
+        if(!IPV4_PATTERN.matcher(cidr).matches()) { return false; }
+        Long[] parsedCIDR = parseCIDR(cidr);
+        if (parsedCIDR[0] + parsedCIDR[1] - 1 > 0xffffffffL) { return false; }
+        return true;
     }
 
     public static class IPv4AddressGeneratorMapper
@@ -58,7 +78,7 @@ public class IPv4AddressGenerator
     public int run(String[] argv) throws Exception {
         // make sure there are enough inputs
         if (argv.length < 2) {
-            System.err.println("Usage: "+getClass().getName()+" <IPv4 CIDR(s) list...> <out>");
+            System.err.println("Usage: "+getClass().getName()+" <IPv4 CIDR(s) list...> <output path>");
             ToolRunner.printGenericCommandUsage(System.err);
             return -1;
         }
@@ -74,17 +94,11 @@ public class IPv4AddressGenerator
         Map<Long, Long> ipToPrefix = new HashMap<Long, Long>(argv.length-1);
         System.out.println("IPv4 range(s) to expand:");
         for ( int i = 0; i < argv.length - 1; i++ ) {
-            if(IPV4_PATTERN.matcher(argv[i]).matches()) {
-                System.out.println(argv[i]);
-                // parse ip and put in map
-                String[] ipAndPrefix = argv[i].split("/");
-                String[] ipSplit = ipAndPrefix[0].split("\\.");
-                long ipAsNum = 0;
-                for (int j=0; j < ipSplit.length; j++) {
-                    ipAsNum += (long) (Long.parseLong(ipSplit[ipSplit.length-1-j])*
-                                       Math.pow(2,j*BITS_IN_BYTE));
-                }
-                ipToPrefix.put(ipAsNum, (long) Math.pow(2, IPV4_BITS-Long.parseLong(ipAndPrefix[1])));
+            System.out.println(argv[i]);
+            if(isValidCIDR(argv[i])) {
+                // parse cidr and put in map
+                Long[] parsedCIDR = parseCIDR(argv[i]);
+                ipToPrefix.put(parsedCIDR[0], parsedCIDR[1]);
             } else {
                 System.err.println(argv[i] + " is not a valid IPv4 address range. IPv4 addresses must be specified using CIDR. For example, 192.168.0.0/16.");
                 return -1;
@@ -143,5 +157,9 @@ public class IPv4AddressGenerator
             fs.delete(TMP_DIR, true);
         }
         return 0;
+    }
+
+    public static void main(String[] argv) throws Exception {
+        System.exit(ToolRunner.run(null, new IPv4AddressGenerator(), argv));
     }
 }
