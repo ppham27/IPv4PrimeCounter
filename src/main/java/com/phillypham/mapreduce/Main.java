@@ -35,16 +35,19 @@ public class Main {
         
         ToolRunner.run(null, new IPv4AddressGenerator(), ipv4AddressGeneratorInputs);
         int numPrimes = ToolRunner.run(null, new PrimeFilter(), primeFilterInputs);
-        System.out.println(numPrimes + " primes were found in the following IPv4 address range(s):");
-        for (int i = 0; i < ipv4AddressGeneratorInputs.length-1; i++) {
-            System.out.println(ipv4AddressGeneratorInputs[i]);
-        }
-        
+
         Date endTime = new Date();
         System.out.println("Jobs ended: " + endTime);
         System.out.println("These jobs took " + 
                            (endTime.getTime() - startTime.getTime())/1000 + 
                            " seconds.");
+
+        // print results
+        System.out.println(numPrimes + " primes were found in the following IPv4 address range(s):");
+        for (int i = 0; i < ipv4AddressGeneratorInputs.length-1; i++) {
+            System.out.println(ipv4AddressGeneratorInputs[i]);
+        }
+        
         System.exit(0);
     }
 }

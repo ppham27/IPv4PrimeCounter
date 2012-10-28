@@ -7,7 +7,9 @@ import java.util.Map.Entry;
 import org.junit.Before;
 import org.junit.Test;
 
-
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mrunit.mapreduce.MapDriver;
@@ -16,6 +18,9 @@ public class TestPrimeFilter {
 
     Map<LongWritable, Text> primes;
     Map<LongWritable, Text> nonPrimes;
+
+    Configuration strictConfiguration;
+    Configuration lenientConfiguration;
 
     @Before
     public void setUp() {
@@ -31,21 +36,29 @@ public class TestPrimeFilter {
         nonPrimes.put(new LongWritable(3232235520L), new Text("192.168.0.0"));
         nonPrimes.put(new LongWritable(3232235521L), new Text("192.168.0.1"));
         nonPrimes.put(new LongWritable(9L), new Text("0.0.0.9"));
+
+
+        strictConfiguration = new Configuration();
+        strictConfiguration.set("primality.testing.type","strict");
+
+        lenientConfiguration = new Configuration();
+        lenientConfiguration.set("primality.testing.type","lenient");
     }
     
     @Test
     public void testPrimeFilterStrictMapper() {
         for (Entry<LongWritable, Text> e : primes.entrySet()) {
             new MapDriver<LongWritable, Text, LongWritable, Text>().
-                withMapper(new PrimeFilter.PrimeFilterStrictMapper()).
+                withConfiguration(strictConfiguration).
+                withMapper(new PrimeFilter.PrimeFilterMapper()).
                 withInput(e.getKey(), e.getValue()).
                 withOutput(e.getKey(), e.getValue()).
                 runTest();
         }
-        
         for (Entry<LongWritable, Text> e : nonPrimes.entrySet()) {
             new MapDriver<LongWritable, Text, LongWritable, Text>().
-                withMapper(new PrimeFilter.PrimeFilterStrictMapper()).
+                withConfiguration(strictConfiguration).
+                withMapper(new PrimeFilter.PrimeFilterMapper()).                
                 withInput(e.getKey(), e.getValue()).
                 runTest();
         }                              
@@ -55,7 +68,8 @@ public class TestPrimeFilter {
     public void testPrimeFilterLenientMapper() {
         for (Entry<LongWritable, Text> e : primes.entrySet()) {
             new MapDriver<LongWritable, Text, LongWritable, Text>().
-                withMapper(new PrimeFilter.PrimeFilterLenientMapper()).
+                withConfiguration(lenientConfiguration).
+                withMapper(new PrimeFilter.PrimeFilterMapper()).
                 withInput(e.getKey(), e.getValue()).
                 withOutput(e.getKey(), e.getValue()).
                 runTest();
@@ -63,7 +77,8 @@ public class TestPrimeFilter {
         
         for (Entry<LongWritable, Text> e : nonPrimes.entrySet()) {
             new MapDriver<LongWritable, Text, LongWritable, Text>().
-                withMapper(new PrimeFilter.PrimeFilterLenientMapper()).
+                withConfiguration(lenientConfiguration).
+                withMapper(new PrimeFilter.PrimeFilterMapper()).
                 withInput(e.getKey(), e.getValue()).
                 runTest();
         }        

@@ -4,7 +4,7 @@
 
   <groupId>com.phillypham</groupId>
   <artifactId>IPv4PrimeCounter</artifactId>
-  <version>1.0</version>
+  <version>1.1</version>
   <packaging>jar</packaging>
 
   <name>IPv4PrimeCounter</name>

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.File;
 import java.io.PrintWriter;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -20,37 +21,37 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import com.phillypham.prime.Prime;
+import com.phillypham.prime.*;
 
 
 public class PrimeFilter
     extends Configured implements Tool {
+
+    public static class PrimeFilterMapper 
+        extends Mapper<LongWritable, Text, LongWritable, Text> {
+
+        ProbabilisticPrimalityTester primalityTester;
+        boolean strict;
+
+        public void setup(Context context)
+            throws IOException, InterruptedException {
+            String primalityTestingType = context.getConfiguration().get("primality.testing.type");
+            strict = (primalityTestingType.equals("strict")) ? true : false;
+            primalityTester = new MillerRabin();
+        }
         
-    public static class PrimeFilterStrictMapper
-        extends Mapper<LongWritable, Text, LongWritable, Text> {            
         public void map(LongWritable number,
                         Text address,
                         Context context)
             throws IOException, InterruptedException {
-            if(Prime.isPrime(number.get())) {
-                context.write(number, address);
+            if(strict) {
+                if(primalityTester.isPrime(number.get())) context.write(number, address);
+            } else {
+                if(primalityTester.isProbablePrime(number.get())) context.write(number, address);
             }
         }
     }
-
-    public static class PrimeFilterLenientMapper
-        extends Mapper<LongWritable, Text, LongWritable, Text> {                
-        public void map(LongWritable number,
-                        Text address,
-                        Context context)
-            throws IOException, InterruptedException {
-            if(Prime.isProbablePrime(number.get())) {
-                context.write(number, address);
-            }
-        }
-    }
-
-
+    
     public int run(String[] args) throws Exception {
         // make sure there are enough inputs
         if (args.length != 2 && args.length != 3) {
@@ -60,7 +61,9 @@ public class PrimeFilter
         }
 
         // get file system, create new job, and name it
-        Job job = new Job(getConf());
+        Configuration configuration = getConf();
+        configuration.set("primality.testing.type", args[0]);
+        Job job = new Job(configuration);
         job.setJobName("prime-filter");
 
         // configure io
@@ -80,12 +83,13 @@ public class PrimeFilter
         job.setInputFormatClass(SequenceFileInputFormat.class);
 
         // set mapper
-        if (args[0].equals("strict")) {
-            System.out.println("Using strict mode...");
-            job.setMapperClass(PrimeFilterStrictMapper.class);
-        } else {
-            job.setMapperClass(PrimeFilterLenientMapper.class);
-        }
+        job.setMapperClass(PrimeFilterMapper.class);
+        // if (args[0].equals("strict")) {
+        //     System.out.println("Using strict mode...");
+        //     job.setMapperClass(PrimeFilterStrictMapper.class);
+        // } else {
+        //     job.setMapperClass(PrimeFilterLenientMapper.class);
+        // }
 
         // set reducer, there are none
         job.setReducerClass(Reducer.class);
