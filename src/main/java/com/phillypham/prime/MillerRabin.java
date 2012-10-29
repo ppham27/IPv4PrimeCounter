@@ -11,7 +11,7 @@ public class MillerRabin
         // assume riemann hypothesis and do deterministic miller-rabin test
         long d = p - 1;
         int s = 0;
-        while (d % 2 == 0) {
+        while ((d & 1L) == 0) {
             d >>= 1;
             s += 1;
         }
@@ -30,13 +30,13 @@ public class MillerRabin
         if (p < 2) return false;        
         if (p == 2) return true; // 2 is prime
         // check to make sure p is odd
-        if (p % 2 == 0) return false;
+        if ((p & 1L) == 0) return false;
         // suppose p is prime by default
         // try to prove that it is composite
         // factor p-1 into 2^r*d
         long d = p - 1L;
         int s = 0;
-        while (d % 2 == 0) {
+        while ((d & 1L) == 0) {
             d >>= 1;
             s += 1;
         }
@@ -53,7 +53,7 @@ public class MillerRabin
         if (m*m >= 0) {         // m is small
             long res = 1;
             while (e > 0) {
-                if (e % 2 == 1) res = (res * a) % m;
+                if ((e & 1L) == 1) res = (res * a) % m;
                 e >>= 1;
                 a = (a*a) % m;
             }
@@ -64,7 +64,7 @@ public class MillerRabin
             BigInteger bigM = new BigInteger(String.valueOf(m));
             BigInteger bigTwo = new BigInteger(String.valueOf(2));
             while (e > 0) {
-                if (e % 2 == 1) bigRes = bigRes.multiply(bigA).mod(bigM);
+                if ((e & 1L) == 1) bigRes = bigRes.multiply(bigA).mod(bigM);
                 e >>= 1;
                 bigA = bigA.modPow(bigTwo,bigM);
             }

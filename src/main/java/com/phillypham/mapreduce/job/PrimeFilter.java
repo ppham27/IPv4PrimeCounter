@@ -1,11 +1,11 @@
 package com.phillypham.mapreduce.job;
 
 import java.io.IOException;
-import java.io.File;
-import java.io.PrintWriter;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.LongWritable;
@@ -27,6 +27,8 @@ import com.phillypham.prime.*;
 public class PrimeFilter
     extends Configured implements Tool {
 
+    private static final String PRIMALITY_TESTING_TYPE_KEY = "primality.testing.type";
+
     public static class PrimeFilterMapper 
         extends Mapper<LongWritable, Text, LongWritable, Text> {
 
@@ -35,7 +37,7 @@ public class PrimeFilter
 
         public void setup(Context context)
             throws IOException, InterruptedException {
-            String primalityTestingType = context.getConfiguration().get("primality.testing.type");
+            String primalityTestingType = context.getConfiguration().get(PRIMALITY_TESTING_TYPE_KEY);
             strict = (primalityTestingType.equals("strict")) ? true : false;
             primalityTester = new MillerRabin();
         }
@@ -60,22 +62,18 @@ public class PrimeFilter
             return -1;
         }
 
-        // get file system, create new job, and name it
+        // configure and create new job
         Configuration configuration = getConf();
-        configuration.set("primality.testing.type", args[0]);
+        FileSystem fs = FileSystem.get(configuration);
+        if (args.length == 3) configuration.set(PRIMALITY_TESTING_TYPE_KEY, args[0]);
         Job job = new Job(configuration);
         job.setJobName("prime-filter");
+        job.setJarByClass(PrimeFilter.class);
 
         // configure io
-        String inDir;
-        String outDir;
-        if(args.length == 2) {
-            inDir = args[0];
-            outDir = args[1];
-        } else {
-            inDir = args[1];
-            outDir = args[2];            
-        }
+        String inDir = args[args.length - 2];
+        String outDir = args[args.length - 1];
+
         FileInputFormat.addInputPath(job, new Path(inDir));
         FileOutputFormat.setOutputPath(job, new Path(outDir, "primes"));
 
@@ -84,27 +82,21 @@ public class PrimeFilter
 
         // set mapper
         job.setMapperClass(PrimeFilterMapper.class);
-        // if (args[0].equals("strict")) {
-        //     System.out.println("Using strict mode...");
-        //     job.setMapperClass(PrimeFilterStrictMapper.class);
-        // } else {
-        //     job.setMapperClass(PrimeFilterLenientMapper.class);
-        // }
 
         // set reducer, there are none
         job.setReducerClass(Reducer.class);
         job.setNumReduceTasks(0);
 
         // run job
-        job.waitForCompletion(false);
+        job.waitForCompletion(true);
         
         // get number of primes from counters
         int numPrimes = (int) job.getCounters().
             findCounter("org.apache.hadoop.mapred.Task$Counter","MAP_OUTPUT_RECORDS").
-            getValue();        
-        PrintWriter primeCountOut = new PrintWriter(new File(outDir, "primeCount.txt"));
+            getValue();
+        FSDataOutputStream primeCountOut = fs.create(new Path(outDir, "primeCount.txt"));
         try {
-            primeCountOut.println("primes\t" + numPrimes);
+            primeCountOut.writeChars("primes\t" + numPrimes + "\n");
         } finally {
             primeCountOut.close();
         }

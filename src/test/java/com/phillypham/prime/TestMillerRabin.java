@@ -50,6 +50,6 @@ public class TestMillerRabin{
         for (int p = 0; p < 1000000; p++) {
             if (primalityTester.isProbablePrime(p)) primeCount++;
         }
-        assertEquals(primeCount, 78498);
+        assertEquals(78498, primeCount);
     }
 }

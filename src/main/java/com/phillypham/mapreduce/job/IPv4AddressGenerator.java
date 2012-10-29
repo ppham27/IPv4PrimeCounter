@@ -88,6 +88,7 @@ public class IPv4AddressGenerator
         FileSystem fs = FileSystem.get(configuration);
         Job job = new Job(configuration);
         job.setJobName("ipv4-generator");
+        job.setJarByClass(IPv4AddressGenerator.class);
 
         // regurgitate input and make sure it is valid to give user feedback
         // first parse IPv4 ranges in CIDR format
@@ -104,7 +105,7 @@ public class IPv4AddressGenerator
                 return -1;
             }
         }
-        Path inDir = new Path(TMP_DIR,"in");
+        Path inDir = new Path(argv[argv.length-1],TMP_DIR);
         Path outDir = new Path(argv[argv.length-1],"addresses");
         System.out.println("Output to be written to " + outDir.toUri());
 
@@ -151,10 +152,10 @@ public class IPv4AddressGenerator
             job.setNumReduceTasks(0);
 
             // run job
-            job.waitForCompletion(false);
+            job.waitForCompletion(true);
             
         } finally {
-            fs.delete(TMP_DIR, true);
+            fs.delete(inDir, true);
         }
         return 0;
     }
