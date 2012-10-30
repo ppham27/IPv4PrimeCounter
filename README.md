@@ -8,7 +8,7 @@ git clone https://github.com/ppham27/IPv4PrimeCounter.git && cd IPv4PrimeCounter
 mvn install && cd target
 
 Usage:  
-hadoop jar IPv4PrimeCounter-1.1.jar com.phillypham.mapreduce.Main [strict] <IPv4 CIDR(s) list...> <output path>
+hadoop jar IPv4PrimeCounter-1.1.jar com.phillypham.mapreduce.Main [strict] \<IPv4 CIDR(s) list...\> \<output path\>
 
 Examples:  
 Normal mode (uses probabilistic Miller-Rabin):  
