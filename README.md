@@ -3,7 +3,7 @@ IPv4PrimeCounter
 
 A map-reduce program to generate IPv4 addresses and filter out prime numbers using the Miller-Rabin primality test.
 
-Installation:
+Installation:  
 git clone https://github.com/ppham27/IPv4PrimeCounter.git && cd IPv4PrimeCounter  
 mvn install && cd target
 
